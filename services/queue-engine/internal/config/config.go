@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	App  AppConfig
-	HTTP HTTPConfig
+	App   AppConfig
+	HTTP  HTTPConfig
+	Redis RedisConfig
 }
 
 type AppConfig struct {
@@ -20,10 +21,19 @@ type HTTPConfig struct {
 	Port string
 }
 
+type RedisConfig struct {
+	Host     string
+	Password string
+	DB       int
+}
+
 func LoadConfig() *Config {
 	viper.SetDefault("APP_NAME", "Q-Time Queue Engine")
 	viper.SetDefault("APP_ENV", "development")
 	viper.SetDefault("HTTP_PORT", ":3000")
+	viper.SetDefault("REDIS_HOST", "localhost:6379")
+	viper.SetDefault("REDIS_PASSWORD", "")
+	viper.SetDefault("REDIS_DB", 0)
 
 	// 1. Read from .env file (if exists) used for local dev
 	viper.SetConfigFile(".env")
@@ -39,6 +49,11 @@ func LoadConfig() *Config {
 		},
 		HTTP: HTTPConfig{
 			Port: viper.GetString("HTTP_PORT"),
+		},
+		Redis: RedisConfig{
+			Host:     viper.GetString("REDIS_HOST"),
+			Password: viper.GetString("REDIS_PASSWORD"),
+			DB:       viper.GetInt("REDIS_DB"),
 		},
 	}
 
