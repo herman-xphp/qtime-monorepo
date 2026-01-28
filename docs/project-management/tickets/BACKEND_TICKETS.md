@@ -42,7 +42,7 @@
 **Description**: Initialize Java Core Backend with Flyway for DB Migrations.
 **Tech Notes**:
 
-- **Spring Boot 4.1.0**, Java 21 (LTS).
+- **Spring Boot 4.0.2**, Java 21 (LTS).
 - Enable Virtual Threads (`spring.threads.virtual.enabled=true`).
 - Disable `spring.jpa.hibernate.ddl-auto`.
   **Acceptance Criteria**:
