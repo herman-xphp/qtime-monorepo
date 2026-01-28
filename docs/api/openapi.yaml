@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: Q-Time API
+  description: |
+    Universal Queue Management System API.
+    A Polyglot system comprising Go (Queue), Java (Core), and Python (Intelligence) services.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@qtime.id
+
+servers:
+  - url: http://localhost:3000
+    description: Queue Engine (Go) - High Performance
+  - url: http://localhost:8080/api
+    description: Core Backend (Java) - Business Logic
+  - url: http://localhost:3002
+    description: Intelligence Service (Python) - Analytics
+
+tags:
+  - name: Queue
+    description: Operations for taking and managing queue numbers (Go)
+  - name: Auth
+    description: Authentication & Identity Management (Java)
+  - name: Merchant
+    description: Tenant & Counter Configuration (Java)
+  - name: Reports
+    description: Financial & Operational Reports (Java)
+  - name: Intelligence
+    description: AI/ETA Predictions (Python)
+
+paths:
+  # ==========================================
+  # QUEUE ENGINE (Go)
+  # ==========================================
+  /queue/take:
+    post:
+      tags: [Queue]
+      summary: Take a queue number
+      description: Captures a new ticket for a user. Atomic operation via Redis.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeQueueRequest'
+      responses:
+        '201':
+          description: Ticket Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+        '409':
+          description: Already has active ticket / Queue Closed
+
+  /queue/call:
+    post:
+      tags: [Queue]
+      summary: Call next number (Staff)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallQueueRequest'
+      responses:
+        '200':
+          description: Called Ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+
+  /queue/{ticket_id}/status:
+    put:
+      tags: [Queue]
+      summary: Update ticket status (Skip/Complete)
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [COMPLETED, SKIPPED, NO_SHOW]
+      responses:
+        '200':
+          description: Status Updated
+
+  /queue/{merchant_id}/realtime:
+    get:
+      tags: [Queue]
+      summary: Get Realtime Dashboard Data
+      parameters:
+        - name: merchant_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Dashboard Data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+  # ==========================================
+  # CORE BACKEND (Java)
+  # ==========================================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new Tenant/Merchant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login to system
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /merchants/{id}:
+    get:
+      tags: [Merchant]
+      summary: Get Merchant Details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Merchant Detail
+
+    put:
+      tags: [Merchant]
+      summary: Update Config
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantConfig'
+      responses:
+        '200':
+          description: Updated
+
+  /merchants/{id}/counters:
+    post:
+      tags: [Merchant]
+      summary: Add new Counter (Loket)
+      responses:
+        '201':
+          description: Counter created
+
+  /reports/daily:
+    get:
+      tags: [Reports]
+      summary: Download Daily Report
+      parameters:
+        - name: merchant_id
+          in: query
+          required: true
+          schema: { type: string }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Report Data
+
+  # ==========================================
+  # INTELLIGENCE (Python)
+  # ==========================================
+  /eta/{merchant_id}:
+    get:
+      tags: [Intelligence]
+      summary: Get Predicted Wait Time
+      responses:
+        '200':
+          description: Prediction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estimated_minutes: { type: integer }
+                  confidence_score: { type: number }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- Request Schemas ---
+    TakeQueueRequest:
+      type: object
+      required: [merchant_id, service_code]
+      properties:
+        merchant_id: { type: string, format: uuid }
+        service_code: { type: string, example: "POLI-UMUM" }
+        user_id: { type: string, description: "Optional if anonymous" }
+
+    CallQueueRequest:
+      type: object
+      required: [merchant_id, counter_id]
+      properties:
+        merchant_id: { type: string, format: uuid }
+        counter_id: { type: string }
+
+    RegisterRequest:
+      type: object
+      required: [email, password, business_name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        business_name: { type: string }
+        address: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string }
+        password: { type: string }
+
+    MerchantConfig:
+      type: object
+      properties:
+        opening_hours_start: { type: string, example: "08:00" }
+        opening_hours_end: { type: string, example: "17:00" }
+        max_daily_queue: { type: integer }
+
+    # --- Response Schemas ---
+    TicketResponse:
+      type: object
+      properties:
+        ticket_id: { type: string, format: uuid }
+        ticket_number: { type: string, example: "A-005" }
+        status: { type: string, enum: [WAITING, CALLED, COMPLETED] }
+        created_at: { type: string, format: date-time }
+        estimated_wait_seconds: { type: integer }
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer }
+
+    DashboardResponse:
+      type: object
+      properties:
+        merchant_name: { type: string }
+        counters:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              serving_ticket: { type: string }
+              status: { type: string, enum: [OPEN, CLOSED, BREAK] }
+        waiting_count: { type: integer }

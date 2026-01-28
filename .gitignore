@@ -1,0 +1,36 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+.agent/
+*.log
+
+# Environment variables (Critical Security)
+.env
+.env.*
+
+# Golang
+/bin/
+/dist/
+main
+*.exe
+vendor/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml
