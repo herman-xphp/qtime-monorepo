@@ -2,14 +2,16 @@ package config
 
 import (
 	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App   AppConfig
-	HTTP  HTTPConfig
-	Redis RedisConfig
+	App      AppConfig
+	HTTP     HTTPConfig
+	Redis    RedisConfig
+	Redpanda RedpandaConfig
 }
 
 type AppConfig struct {
@@ -27,6 +29,11 @@ type RedisConfig struct {
 	DB       int
 }
 
+type RedpandaConfig struct {
+	Brokers []string
+	Topic   string
+}
+
 func LoadConfig() *Config {
 	viper.SetDefault("APP_NAME", "Q-Time Queue Engine")
 	viper.SetDefault("APP_ENV", "development")
@@ -34,6 +41,8 @@ func LoadConfig() *Config {
 	viper.SetDefault("REDIS_HOST", "localhost:6379")
 	viper.SetDefault("REDIS_PASSWORD", "")
 	viper.SetDefault("REDIS_DB", 0)
+	viper.SetDefault("REDPANDA_BROKERS", "localhost:9092")
+	viper.SetDefault("REDPANDA_TOPIC", "queue-events")
 
 	// 1. Read from .env file (if exists) used for local dev
 	viper.SetConfigFile(".env")
@@ -55,8 +64,12 @@ func LoadConfig() *Config {
 			Password: viper.GetString("REDIS_PASSWORD"),
 			DB:       viper.GetInt("REDIS_DB"),
 		},
+		Redpanda: RedpandaConfig{
+			Brokers: strings.Split(viper.GetString("REDPANDA_BROKERS"), ","),
+			Topic:   viper.GetString("REDPANDA_TOPIC"),
+		},
 	}
 
-	log.Printf("Config loaded: Env=%s Port=%s", config.App.Env, config.HTTP.Port)
+	log.Printf("Config loaded: Env=%s Port=%s Redpanda=%v", config.App.Env, config.HTTP.Port, config.Redpanda.Brokers)
 	return config
 }

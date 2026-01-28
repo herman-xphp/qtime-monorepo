@@ -13,17 +13,24 @@ func NewQueueHandler(svc *service.QueueService) *QueueHandler {
 	return &QueueHandler{svc: svc}
 }
 
+type TakeTicketRequest struct {
+	MerchantID string `json:"merchant_id"`
+}
+
 func (h *QueueHandler) TakeTicket(c *fiber.Ctx) error {
-	// Simple validation: Merchant ID required
-	merchantID := c.Query("merchant_id")
-	if merchantID == "" {
+	var req TakeTicketRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if req.MerchantID == "" {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "merchant_id is required",
 		})
 	}
 
 	// Call service
-	number, err := h.svc.GenerateTicket(c.Context(), merchantID)
+	number, err := h.svc.GenerateTicket(c.Context(), req.MerchantID)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": err.Error(),
@@ -34,6 +41,6 @@ func (h *QueueHandler) TakeTicket(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":        "success",
 		"ticket_number": number,
-		"merchant_id":   merchantID,
+		"merchant_id":   req.MerchantID,
 	})
 }
