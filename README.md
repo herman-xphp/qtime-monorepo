@@ -28,18 +28,18 @@ We utilize a **Best-for-Job Strategy**, leveraging distinct languages for specif
 
 ```mermaid
 graph LR
-    Client -->|HTTPS| PublicApp[PWA (Next.js)]
-    Staff -->|HTTPS| AdminApp[Admin (SvelteKit)]
+    Client -->|HTTPS| PublicApp["PWA (Next.js)"]
+    Staff -->|HTTPS| AdminApp["Admin (SvelteKit)"]
 
     PublicApp --> Gateway
     AdminApp --> Gateway
 
-    Gateway[API Gateway] --> QueueSvc(Go: Queue Engine)
-    Gateway --> CoreSvc(Java: Core Backend)
+    Gateway["API Gateway"] --> QueueSvc("Go: Queue Engine")
+    Gateway --> CoreSvc("Java: Core Backend")
 
     QueueSvc -->|Events| Redpanda
-    Redpanda --> NotifSvc(Node: Notifications)
-    Redpanda --> ML(Python: Intelligence)
+    Redpanda --> NotifSvc("Node: Notifications")
+    Redpanda --> ML("Python: Intelligence")
 ```
 
 | Domain               | Service         | Stack                           | Key Responsibility                                     |

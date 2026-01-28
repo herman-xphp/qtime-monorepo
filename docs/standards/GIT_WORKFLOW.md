@@ -14,30 +14,34 @@ We use a standard **Git Flow** centered around `develop`.
 
 ---
 
-## 2. Commit Messages (Conventional Commits)
+## 2. Commit Messages (Strict Format) 📜
 
-We enforce **Conventional Commits** to automate changelogs and versioning.
+We enforce a **3-part structure** for all commits to ensure clarity and traceability.
 
-**Format**:
-`type(scope): subject`
+**Structure**:
 
-**Types**:
+```text
+<type>(<scope>): <subject>
 
-- `feat`: A new feature (Correlates with MINOR version).
-- `fix`: A bug fix (Correlates with PATCH version).
-- `docs`: Documentation only changes.
-- `style`: Formatting, missing semi colons, etc (no code change).
-- `refactor`: Code change that neither fixes a bug nor adds a feature.
-- `test`: Adding missing tests or correcting existing tests.
-- `chore`: Changes to build process or auxiliary tools.
+- <detailed bullet point 1>
+- <detailed bullet point 2>
 
-**Examples**:
+Ticket: <TICKET-ID>
+```
 
-- ✅ `feat(queue): add redis atomic lua script`
-- ✅ `fix(auth): handle expired jwt token gracefully`
-- ✅ `docs(readme): update architecture diagram`
-- ❌ `update code` (Too vague)
-- ❌ `fixing bug` (No type/scope)
+**Types**: `feat`, `fix`, `docs`, `chore`, `test`, `refactor`.
+
+**Example**:
+
+```text
+feat(service): implement CustomerService with soft-delete
+
+- Implement create() with duplicate validation (KTP, Email)
+- Implement update() for partial update
+- Implement soft-delete in delete() using 'CLOSED' status
+
+Ticket: SYR-005
+```
 
 ---
 
