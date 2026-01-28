@@ -7,7 +7,7 @@ In an enterprise environment, we don't pick tools because they are "hype", but b
 
 ## 1. Core Language Strategy: "Polyglot"
 
-**Decision**: Use distinct languages for Queue (Go), Business (Java), and Async/IO (Node).
+**Decision**: Use distinct languages for Queue (Go), Business (Java), and Workers (Node/Python).
 **Status**: Accepted.
 
 ### Why not Monolith (e.g., All Java)?
@@ -37,10 +37,10 @@ In an enterprise environment, we don't pick tools because they are "hype", but b
 
 **Context**: Complex Domain Model, Transaction Management, Reporting.
 
-- **Choice**: **Java 25 (LTS)**
-- **Framework**: **Spring Boot 4.1.0** (Latest Stable).
+- **Choice**: **Java 21 (LTS)**
+- **Framework**: **Spring Boot 4.0.2** (Latest Stable).
 - **Reasoning**:
-  - **Performance**: Spring Boot 4 brings optimizations for Java 25 Virtual Threads (Project Loom) out of the box.
+  - **Performance**: Spring Boot 4 brings optimizations for Virtual Threads out of the box.
   - **Future Proof**: Aligned with Jakarta EE 11 standard.
   - **Robustness**: Compile-time safety for complex billing logic.
 
@@ -81,7 +81,10 @@ In an enterprise environment, we don't pick tools because they are "hype", but b
 - **Structure**:
   - `apps/admin-dashboard`: SvelteKit (Web for Clinic Staff).
   - `apps/booking-pwa`: React/Next.js (Mobile Web for Patients).
-  - `services/*`: Backend Microservices.
+  - `services/notification-worker`: Node.js (Async Notifications).
+  - `services/intelligence-worker`: Python (AI/ETA Prediction).
+  - `services/queue-engine`: Go (Core Logic).
+  - `services/core-backend`: Java (Admin/API).
 - **Reasoning**:
   - **Atomic Commits**: If we change the API in `queue-engine`, we can fix the Frontend code in the _same_ PR. No "Version Mismatch" nightmare.
   - **Shared Contracts**: Frontend can directly import `openapi.yaml` or TypeScript types generated from the backend.

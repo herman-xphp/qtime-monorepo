@@ -32,7 +32,7 @@ Q-Time is a **Universal Queue Management System (SaaS)** aimed at eliminating th
 
 ---
 
-## 3. MVP Features (Phase 1)
+## 4. MVP Features (Phase 1)
 
 ### A. Queue Management (Core)
 
@@ -54,12 +54,19 @@ Q-Time is a **Universal Queue Management System (SaaS)** aimed at eliminating th
 
 ---
 
-## 4. Success Metrics (KPIs)
+## 5. Success Metrics (KPIs)
 
 - **Technical**: < 200ms API Latency for Queue Status.
 - **Business**: Completion Rate (Booked vs Served). Target > 90% (Low No-Show).
 
-## 5. Non-Functional Requirements
+## 6. Non-Functional Requirements
 
 - **Reliability**: Offline-first capability for Business Dashboard (if internet blips).
 - **Scalability**: Handle Monday Morning spike (8:00 - 9:00 AM).
+
+## 7. Technology Stack & Versions
+
+- **Core Backend**: Java 21, Spring Boot 4.0.2
+- **Queue Engine**: Go 1.25.4
+- **Notification Worker**: Node.js, NestJS 11.0.1, TypeScript 5.7.3
+- **Intelligence Worker**: Python 3.14
