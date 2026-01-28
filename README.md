@@ -38,18 +38,19 @@ graph LR
     Gateway --> CoreSvc("Java: Core Backend")
 
     QueueSvc -->|Events| Redpanda
-    Redpanda --> NotifSvc("Node: Notifications")
-    Redpanda --> ML("Python: Intelligence")
+    QueueSvc -->|Events| Redpanda
+    Redpanda --> NotifSvc("Node: Notification Worker")
+    Redpanda --> ML("Python: Intelligence Worker")
 ```
 
-| Domain               | Service         | Stack                           | Key Responsibility                                     |
-| :------------------- | :-------------- | :------------------------------ | :----------------------------------------------------- |
-| **Edge**             | **Apps**        | **Next.js 16** / **SvelteKit**  | Public Booking PWA & Admin Dashboard.                  |
-| **High Performance** | `queue-engine`  | **Go 1.25** + **Fiber**         | Atomic Ticket Generation (Redis Lua), WebSocket Hub.   |
-| **Business Core**    | `core-backend`  | **Java 25** + **Spring Boot 4** | Billing, Tenants, Reporting. Uses **Virtual Threads**. |
-| **IO Bound**         | `notif-service` | **Node.js 24** + **NestJS**     | WhatsApp/Email Dispatcher.                             |
-| **Data/AI**          | `eta-service`   | **Python 3.14** + **FastAPI**   | ETA Prediction (Moving Average).                       |
-| **Infrastructure**   | -               | Docker, Redpanda, Redis, PG     | Event Streaming & Persistence.                         |
+| Domain               | Service               | Stack                           | Key Responsibility                                   |
+| :------------------- | :-------------------- | :------------------------------ | :--------------------------------------------------- |
+| **Edge**             | **Apps**              | **Next.js 16** / **SvelteKit**  | Public Booking PWA & Admin Dashboard.                |
+| **High Performance** | `queue-engine`        | **Go 1.25** + **Fiber**         | Atomic Ticket Generation (Redis Lua), WebSocket Hub. |
+| **Business Core**    | `core-backend`        | **Java 21** + **Spring Boot 4** | Billing, Tenants, Reporting.                         |
+| **IO Bound**         | `notification-worker` | **Node.js 22** + **NestJS**     | WhatsApp/Email Dispatcher.                           |
+| **Data/AI**          | `intelligence-worker` | **Python 3.14** + **FastAPI**   | ETA Prediction (Moving Average).                     |
+| **Infrastructure**   | -                     | Docker, Redpanda, Redis, PG     | Event Streaming & Persistence.                       |
 
 👉 _Read the full Rationale in [Tech Stack Decisions (ADR)](docs/architecture/TECH_STACK_DECISIONS.md)._
 
@@ -65,8 +66,8 @@ qtime-monorepo/
 ├── services/                   # 🚀 Backend Microservices
 │   ├── queue-engine/           # Go (High Perf)
 │   ├── core-backend/           # Java (Business Logic)
-│   ├── notif-service/          # Node.js (Async)
-│   └── eta-service/            # Python (Data)
+│   ├── notification-worker/    # Node.js (Async)
+│   └── intelligence-worker/    # Python (Data)
 ├── docs/                       # 📚 Documentation
 │   ├── architecture/           # Arch, Infra, ADRs
 │   ├── product/                # PRD & User Flows
@@ -82,18 +83,29 @@ qtime-monorepo/
 ### 1. Prerequisites
 
 - **Docker & Docker Compose** (Required)
-- **Go 1.25+**, **Java 25 LTS**, **Node 24 LTS** (Recommended for local dev)
+- **Go 1.25+**, **Java 21 LTS**, **Node 22 LTS** (Recommended for local dev)
 
 ### 2. Quick Start
 
-Clone and start the infrastructure:
+Clone the repository:
 
 ```bash
-git clone https://github.com/your-org/qtime-monorepo.git
+git clone https://github.com/herman-xphp/qtime-monorepo.git
 cd qtime-monorepo
+```
 
-# Start DB, Cache, and Message Broker
-docker-compose up -d
+Choose your starting method:
+
+**Option A: Makefile (Recommended)**
+
+```bash
+make up
+```
+
+**Option B: Raw Docker**
+
+```bash
+docker compose up -d
 ```
 
 ### 3. Verify Health
@@ -108,14 +120,14 @@ Access the services (once running):
 
 ## 🔌 Port Mapping (Local Dev)
 
-| Service           | Port   | Debug  | Database      | Validated URL           |
-| :---------------- | :----- | :----- | :------------ | :---------------------- |
-| **Queue Engine**  | `3000` | `2345` | Redis `8`     | `POST /queue/take`      |
-| **Core Backend**  | `8080` | `5005` | Postgres `18` | `POST /auth/login`      |
-| **Notifications** | `3001` | `9229` | -             | -                       |
-| **Intelligence**  | `3002` | -      | -             | `GET /eta/{id}`         |
-| **Admin Web**     | `5173` | -      | -             | `http://localhost:5173` |
-| **Public PWA**    | `3005` | -      | -             | `http://localhost:3005` |
+| Service                 | Port   | Debug  | Database      | Validated URL           |
+| :---------------------- | :----- | :----- | :------------ | :---------------------- |
+| **Queue Engine**        | `3000` | `2345` | Redis `8`     | `POST /queue/take`      |
+| **Core Backend**        | `8080` | `5005` | Postgres `18` | `POST /auth/login`      |
+| **Notification Worker** | `3001` | `9229` | -             | -                       |
+| **Intelligence Worker** | `3002` | -      | -             | `GET /eta/{id}`         |
+| **Admin Web**           | `5173` | -      | -             | `http://localhost:5173` |
+| **Public PWA**          | `3005` | -      | -             | `http://localhost:3005` |
 
 ---
 
@@ -141,6 +153,48 @@ Please read these before writing code:
 - **Active Sprints**:
   - [Backend Plan](docs/project-management/sprints/backend/SPRINT_1.md)
   - [Frontend Plan](docs/project-management/sprints/frontend/SPRINT_1.md)
+
+---
+
+## ⚡ Performance Benchmarks (k6)
+
+The system is tested to handle high-concurrency "Flash Sale" scenarios (1,000 Concurrent Users).
+
+**Load Test Scenario**:
+
+- **Tool**: [k6](https://k6.io/)
+- **Script**: `tests/k6/load-test.js`
+- **Simulation**: 1,000 Virtual Users (VU) taking tickets and checking ETA.
+
+**Actual Results**:
+
+- **Checks Succeeded**: 100.00% (0 errors)
+- **RPS (Throughput)**: 730 requests/sec
+- **p95 Latency**: **47.22ms** (Target was < 500ms)
+- **Check Breakdown**:
+  - `✓ ticket created`
+  - `✓ has ticket number`
+  - `✓ eta retrieved`
+
+---
+
+## 🛠️ Shortcut Commands (Makefile)
+
+We use a `Makefile` to simplify common development tasks.
+
+| Category    | Makefile Command   | Docker Equivalent                      | Description              |
+| :---------- | :----------------- | :------------------------------------- | :----------------------- |
+| **Infra**   | `make up`          | `docker compose up -d`                 | Start all containers     |
+|             | `make down`        | `docker compose down`                  | Stop all containers      |
+|             | `make build`       | `docker compose build`                 | Rebuild images           |
+|             | `make ps`          | `docker compose ps`                    | Show containers          |
+| **Logs**    | `make logs`        | `docker compose logs -f`               | Follow all logs          |
+|             | `make logs-q`      | `docker compose logs -f queue-engine`  | Follow Queue Engine logs |
+|             | `make logs-c`      | `docker compose logs -f core-backend`  | Follow Core Backend logs |
+| **Testing** | `make test`        | (See scripts/mvnw/go test)             | Run Unit Tests (Local)   |
+|             | `make test-api`    | `curl ...` (See Makefile)              | Run quick API check      |
+| **Tools**   | `make db-shell`    | `docker compose exec postgres psql...` | Open Postgres Shell      |
+|             | `make redis-shell` | `docker compose exec redis redis-cli`  | Open Redis Shell         |
 
 ---
 
