@@ -18,10 +18,14 @@ func main() {
 	rdb := config.NewRedisClient(cfg)
 	defer rdb.Close()
 
-	// 3. Wiring Dependency Injection (Clean Arch)
+	// 3. Connect to Redpanda
+	kafka := config.NewRedPandaClient(cfg)
+	defer kafka.Close()
+
+	// 4. Wiring Dependency Injection (Clean Arch)
 	// Repo -> Service -> Handler
 	repo := repository.NewQueueRepository(rdb)
-	svc := service.NewQueueService(repo)
+	svc := service.NewQueueService(repo, kafka, cfg)
 	h := handler.NewQueueHandler(svc)
 
 	// 4. Initialize Fiber
