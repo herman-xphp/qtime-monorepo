@@ -1,42 +1,38 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # ==========================================
-  # DATA STORE
+  # INFRASTRUCTURE
   # ==========================================
   postgres:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: qtime_postgres
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: qtime_db
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d qtime_db"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - qtime-network
 
   redis:
-    image: redis:8-alpine
+    image: redis:7-alpine
     container_name: qtime_redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+    networks:
+      - qtime-network
 
-  # ==========================================
-  # EVENT BUS (Redpanda) - Faster Kafka
-  # ==========================================
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:latest
     container_name: qtime_redpanda
@@ -53,27 +49,89 @@ services:
       - --pandaproxy-addr 0.0.0.0:8082
       - --advertise-pandaproxy-addr localhost:8082
     ports:
-      - "9092:9092"
+      - "8081:8081"
       - "8082:8082"
+      - "9092:9092"
+      - "9644:9644"
     volumes:
       - redpanda_data:/var/lib/redpanda/data
-    healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    networks:
+      - qtime-network
 
-  redpanda-console:
-    image: redpandadata/console:latest
-    container_name: qtime_redpanda_console
-    ports:
-      - "8081:8080"
+  # ==========================================
+  # MICROSERVICES
+  # ==========================================
+
+  # 1. GO: Queue Engine (Port 3000)
+  queue-engine:
+    build:
+      context: ./services/queue-engine
+    container_name: qtime-queue-engine
     environment:
+      APP_PORT: 3000
+      REDIS_HOST: redis:6379
+      REDPANDA_BROKERS: redpanda:29092
+      CONFIG_NAME: config
+      CONFIG_TYPE: yaml
+      CONFIG_PATH: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - redpanda
+    networks:
+      - qtime-network
+
+  # 2. JAVA: Core Backend (Port 8080)
+  core-backend:
+    build:
+      context: ./services/core-backend
+    container_name: qtime-core-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/qtime_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - qtime-network
+
+  # 3. NODE: Notification Worker (Consumer)
+  notification-worker:
+    build:
+      context: ./services/notification-worker
+    container_name: qtime-notification-worker
+    environment:
+      # NestJS Kafka Config (bisa inject via env kalau code support)
       KAFKA_BROKERS: redpanda:29092
     depends_on:
       - redpanda
+    networks:
+      - qtime-network
+
+  # 4. PYTHON: Intelligence Worker (Port 8000)
+  intelligence-worker:
+    build:
+      context: ./services/intelligence-worker
+    container_name: qtime-intelligence-worker
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/qtime_db
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - qtime-network
 
 volumes:
   postgres_data:
   redis_data:
   redpanda_data:
+
+networks:
+  qtime-network:
+    driver: bridge
