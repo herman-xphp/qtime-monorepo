@@ -1,93 +1,71 @@
 # Backend Engineering Tickets 🏗️
 
-## Phase 1: Foundation (Go & Java)
+## Phase 1: Foundation & Core Services
 
-### [QTIME-001] Setup Monorepo & Infrastructure
+### [QTIME-001] Setup Monorepo & Infrastructure [DONE]
+**Type**: Chore | **Points**: 3
+**Description**: Initialize project structure and docker-compose.
 
-**Type**: Chore | **Story Points**: 3
-**Description**: Initialize project structure and docker-compose for local development.
-**Acceptance Criteria**:
+### [QTIME-002] Queue Engine Skeleton (Golang) [DONE]
+**Type**: Feature | **Points**: 5
+**Description**: Basic Go Fiber service.
 
-- [ ] `docker-compose up` starts Postgres (5432), Redis (6379), Redpanda (9092).
-- [ ] `services/` folder contains subfolders for `queue-engine`, `notif-service`, `eta-service`.
-- [ ] `.gitignore` is properly configured.
+### [QTIME-003] API: Take Ticket Number (Redis Atomic) [DONE]
+**Type**: Feature | **Points**: 8
+**Description**: Atomic ticket generation using Lua script.
 
-### [QTIME-002] Queue Engine Skeleton (Golang)
+### [QTIME-004] Spring Boot Scaffold & Flyway [DONE]
+**Type**: Chore | **Points**: 5
+**Description**: Base Java service with DB migrations.
 
-**Type**: Feature | **Story Points**: 5
-**Description**: Create the main Golang service using Fiber framework.
-**Tech Notes**:
+---
 
-- Use `github.com/gofiber/fiber/v2`
-- Use Clean Architecture: `internal/handler`, `internal/service`, `internal/repository`.
-  **Acceptance Criteria**:
-- [ ] Application runs on port 3000.
-- [ ] `GET /health` returns "OK".
-- [ ] Graceful shutdown implemented.
+## Phase 2: Security & Business Logic (Java)
 
-### [QTIME-003] API: Take Ticket Number (Redis Atomic)
+### [QTIME-009] Spring Security & JWT Implementation
+**Type**: Feature | **Points**: 8
+**Description**: Implement stateless authentication with JWT for multiple roles.
 
-**Type**: Feature | **Story Points**: 8
-**Description**: Endpoint for user to take a queue number using Redis Lua Script.
-**Tech Notes**:
+### [QTIME-010] Tenant (Merchant) Management API
+**Type**: Feature | **Points**: 8
+**Description**: CRUD for Merchants, Counters, and Staff. Enforce Tenant Isolation.
 
-- Use `EVAL` for atomic increment.
-  **Acceptance Criteria**:
-- [ ] `POST /queue/take` returns unique ticket number.
-- [ ] No duplicate numbers under load.
+### [QTIME-011] Staff Interaction: Call, Skip, Complete
+**Type**: Feature | **Points**: 8
+**Description**: API for staff to manage queue lifecycle.
 
-### [QTIME-004] Spring Boot Scaffold & Flyway
+### [QTIME-012] Reporting Engine: Daily Stats
+**Type**: Feature | **Points**: 5
+**Description**: Aggregate queue data for daily business reports.
 
-**Type**: Chore | **Story Points**: 5
-**Description**: Initialize Java Core Backend with Flyway for DB Migrations.
-**Tech Notes**:
+---
 
-- **Spring Boot 4.0.2**, Java 21 (LTS).
-- Enable Virtual Threads (`spring.threads.virtual.enabled=true`).
-- Disable `spring.jpa.hibernate.ddl-auto`.
-  **Acceptance Criteria**:
-- [ ] `mvn clean install` success.
-- [ ] `V1__init_schema.sql` runs on startup to create `tenants` table.
+## Phase 3: Event-Driven & Intelligence
 
-## Phase 1.5: Production Hardening
+### [QTIME-013] Redpanda Event Integration
+**Type**: Feature | **Points**: 5
+**Description**: Publish queue events (Created, Called) to Redpanda.
 
-### [QTIME-009] Spring Security & JWT
+### [QTIME-014] Notification Worker (Node.js)
+**Type**: Feature | **Points**: 5
+**Description**: Consume events and send WhatsApp/Email stubs.
 
-**Type**: Feature | **Story Points**: 8
-**Description**: Implement stateless JWT Authentication.
-**Acceptance Criteria**:
+### [QTIME-015] ETA Service (Python)
+**Type**: Feature | **Points**: 8
+**Description**: Moving average calculation for dynamic ETAs.
 
-- [ ] `JwtAuthenticationFilter` validates Bearer token.
-- [ ] `@PreAuthorize` works on controllers.
+---
 
-### [QTIME-013] Observability Setup
+## Phase 4: Production Hardening
 
-**Type**: Chore | **Story Points**: 5
-**Description**: Add Actuator and Prometheus metrics.
-**Acceptance Criteria**:
+### [QTIME-030] Industrial Logging & Observability
+**Type**: Chore | **Points**: 5
+**Description**: Implement JSON logging, Actuator, and Prometheus metrics.
 
-- [ ] `GET /actuator/prometheus` returns metrics.
+### [QTIME-031] Container Optimization & K8s Manifests
+**Type**: DevOps | **Points**: 8
+**Description**: Multistage Dockerfiles and Helm charts.
 
-## Phase 2: Connectivity
-
-### [QTIME-010] Go: Redpanda Producer
-
-**Type**: Feature | **Story Points**: 5
-**Description**: Publish `TICKET_CREATED` events.
-
-### [QTIME-011] Node: Redpanda Consumer
-
-**Type**: Feature | **Story Points**: 5
-**Description**: Consume events and log them.
-
-## Phase 3: Intelligence
-
-### [QTIME-020] Python Service Scaffold
-
-**Type**: Chore | **Story Points**: 3
-**Description**: Setup FastAPI project.
-
-### [QTIME-030] Docker Optimization
-
-**Type**: DevOps | **Story Points**: 5
-**Description**: Multistage builds for all services.
+### [QTIME-032] Load Testing & Performance Tuning
+**Type**: QA | **Points**: 13
+**Description**: k6 load testing and JVM/Go tuning.
